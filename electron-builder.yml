@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.marktext.app
 productName: marktext
 directories:
   buildResources: build
@@ -79,7 +79,8 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   icon: static/icon.icns
-  notarize: true
+  identity: null
+  notarize: false
   target:
     - target: dmg
       arch: [x64, arm64]

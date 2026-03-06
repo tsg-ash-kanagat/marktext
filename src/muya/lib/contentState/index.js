@@ -420,6 +420,7 @@ class ContentState {
   // return block and its parents
   getParents(block) {
     const result = []
+    if (!block) return result
     result.push(block)
     let parent = this.getParent(block)
     while (parent) {
