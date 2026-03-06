@@ -65,7 +65,7 @@
 
 - Available on the [Releases Page](https://github.com/peterjthomson/marktext/releases)
 - Both Apple Silicon (arm64) and Intel (x64) builds available
-- Release builds are signed and **notarized** for macOS Gatekeeper compatibility
+- Local builds are unsigned — see [Developer Documentation](docs/dev/README.md) for re-signing instructions
 
 # 2. Screenshots
 
@@ -134,4 +134,20 @@
 
 ## 3. Project Setup
 
-- See [Developer Documentation](docs/dev/README.md)
+### Quick Start (macOS Apple Silicon)
+
+**Prerequisites:** Node.js 22 LTS, Python 3.12+, Xcode 16+
+
+```bash
+git clone https://github.com/peterjthomson/marktext.git
+cd marktext
+CXXFLAGS="-std=c++17" npm install
+npm run build:mac
+
+# Re-sign and launch (required on macOS 15+)
+codesign --deep --force --sign - dist/mac-arm64/marktext.app
+xattr -cr dist/mac-arm64/marktext.app
+open dist/mac-arm64/marktext.app
+```
+
+For full setup instructions, troubleshooting, and other platforms, see [Developer Documentation](docs/dev/README.md).

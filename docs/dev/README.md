@@ -81,63 +81,62 @@ npm run dev
 # For Windows
 $ npm run build:win
 
-# For macOS (see section below for details)
+# For macOS
 $ npm run build:mac
 
 # For Linux
 $ npm run build:linux
 ```
 
-### 1.9 Building for macOS
+The `build:mac` and `build:linux` scripts automatically set `CXXFLAGS="-std=c++20"` for the native module rebuild step. On macOS you will still need to re-sign and clear quarantine after building (see below).
 
-The macOS build requires extra steps due to native module compilation and code signing.
+### 1.9 Building for macOS — Post-Build Steps
 
-#### Step 1: Rebuild native modules for Electron (requires C++20)
+After `npm run build:mac` completes, the DMG and ZIP files are in `dist/`. However, on **macOS 15+** (Sequoia / Tahoe) the app bundle must be re-signed before it will launch.
 
-```bash
-CXXFLAGS="-std=c++20" npx @electron/rebuild
-```
+#### Why re-signing is needed
 
-#### Step 2: Build and package
+The build uses `identity: null` in `electron-builder.yml` to skip Apple Developer code signing (notarization requires a paid Apple Developer account). Without signing, macOS assigns ad-hoc signatures to each binary independently, which can produce mismatched Team IDs across Electron helper processes (GPU, Renderer, Network). This causes the app to crash on launch with `dyld` errors about "different Team IDs".
 
-```bash
-npm run minify-locales && npm run build && npx electron-builder --mac --publish never
-```
+#### Step 1: Re-sign the app bundle
 
-Or as a single command (if `@electron/rebuild` has already been run):
-
-```bash
-npm run minify-locales && npm run build && npx electron-builder --mac --publish never
-```
-
-#### Step 3: Re-sign the app bundle (required on macOS 15+ / Sequoia / Tahoe)
-
-macOS 15+ enforces that all binaries in an app bundle share the same code signing Team ID. The default electron-builder ad-hoc signing can produce mismatched signatures across helper processes (GPU, Renderer, Network), causing the app to crash on launch with `dyld` errors about "different Team IDs".
-
-Fix by re-signing the entire bundle:
+For Apple Silicon:
 
 ```bash
 codesign --deep --force --sign - dist/mac-arm64/marktext.app
-```
-
-Verify the signature:
-
-```bash
 codesign --verify --deep --strict dist/mac-arm64/marktext.app
 ```
 
-#### Step 4: Launch
+For Intel:
 
 ```bash
+codesign --deep --force --sign - dist/mac/marktext.app
+codesign --verify --deep --strict dist/mac/marktext.app
+```
+
+#### Step 2: Clear quarantine and launch
+
+```bash
+# Remove quarantine attribute (required for unsigned apps)
+xattr -cr dist/mac-arm64/marktext.app
+
+# Launch
 open dist/mac-arm64/marktext.app
 ```
 
-The DMG is also available at `dist/marktext-mac-arm64-1.3.0.dmg`.
+The DMG is also available at `dist/marktext-mac-arm64-<version>.dmg`.
 
-> **Note:** If macOS blocks the app (unidentified developer), clear the quarantine attribute:
-> ```bash
-> xattr -cr dist/mac-arm64/marktext.app
-> ```
+#### Troubleshooting
+
+- **Build hangs at "packaging"**: Delete the Electron cache and retry. A corrupted cached download will cause the build to hang silently:
+  ```bash
+  rm -rf ~/Library/Caches/electron/
+  ```
+- **ENOENT rename Electron error**: Delete the `dist/` directory and retry. A stale `dist/` from a previous build causes this:
+  ```bash
+  rm -rf dist/
+  ```
+- **For distribution with proper signing**: Replace `identity: null` with your Apple Developer ID in `electron-builder.yml` and set `notarize: true`. You will need `CSC_LINK`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` environment variables.
 
 ## 2. Sub-sections
 
